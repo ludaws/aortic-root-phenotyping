@@ -1,0 +1,31 @@
+# Data (never commit patient data or intermediates)
+data/
+results/
+*.nii.gz
+*.npz
+*.dcm
+*.dicom
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+renv/library/
+renv/local/
+renv/staging/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
