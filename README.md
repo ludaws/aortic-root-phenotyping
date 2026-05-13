@@ -2,9 +2,8 @@
 
 Source code accompanying:
 
-> Dawson LP, Vekstein A, Huckaby L, et al. **Fibrocalcific tissue
+> Dawson LP, et al. **Fibrocalcific tissue
 > distribution phenotypes in tricuspid and bicuspid aortic stenosis.**
-> *JACC: Cardiovascular Imaging* (under review).
 
 This repository contains the full image-processing, tissue-classification, and
 unsupervised-clustering pipeline used to derive three reproducible fibrocalcific
