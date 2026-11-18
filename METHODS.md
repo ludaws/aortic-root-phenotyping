@@ -61,7 +61,12 @@ calcific).
 `clustering/clustering.R`:
 
 - NMF is applied to each matrix separately (R `NMF` package, Brunet method,
-  rank 2 for each matrix).
+  30 random initializations per rank). The number of components per matrix
+  was selected from ranks 2 to 6 as the rank at which the cophenetic
+  correlation coefficient plateaued before declining at higher ranks, which
+  gave 2 components for each matrix. The script computes the rank
+  diagnostics for ranks 2 to 6 and uses the selected ranks
+  (`--fixed-ranks pc=2,pf=2,uw=2`).
 - The per-patient NMF weights are scaled to the range 0 to 1, weighted by the
   variance explained within each matrix, and combined.
 - Consensus clustering uses `ConsensusClusterPlus` with Partition Around

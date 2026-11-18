@@ -7,8 +7,10 @@
 #
 # Pipeline:
 #   1. Load channel matrices and restrict to tricuspid cases.
-#   2. NMF per channel (R NMF package, Brunet method), rank 2 for each
-#      channel (override with --fixed-ranks).
+#   2. NMF per channel (R NMF package, Brunet method). Rank diagnostics are
+#      computed for ranks 2 to 6. The rank was selected as the point at which
+#      the cophenetic correlation plateaued before declining at higher ranks,
+#      giving 2 components per channel (--fixed-ranks pc=2,pf=2,uw=2).
 #   3. Scale each H column to [0, 1], weight by within-channel explained
 #      variance, and concatenate into a per-case embedding.
 #   4. ConsensusClusterPlus with PAM, Pearson distance, reps=500,
