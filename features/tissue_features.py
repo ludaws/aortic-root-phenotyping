@@ -658,8 +658,8 @@ def process_single_case(case_data: Dict) -> Optional[Dict]:
         logger.warning(f"Annular radius too small ({annular_radius:.1f}mm) for {case_data['case_name']}")
         return None
 
-    # ---- POLAR PROJECTIONS (eroded root interior — wall_mask excluded) ----
-    # Eroded interior: root_mask minus the 2mm wall shell.
+    # ---- POLAR PROJECTIONS (eroded root interior, wall_mask excluded) ----
+    # Eroded interior: root_mask minus the 1.5 mm wall shell.
     # Restricts polar bullseye to leaflet tissue, excluding wall calcium and
     # fibrosis projected from the sinus/STJ region.
     # wall_mask was generated with plane-aware EDT so annular and STJ faces
@@ -733,7 +733,7 @@ def process_single_case(case_data: Dict) -> Optional[Dict]:
         ref_vec, perp_vec, rotation_offset,
     )
 
-    # Project fibrotic mask (no dilation — fibrosis is diffuse, dilation not appropriate)
+    # Project fibrotic mask (no dilation because fibrosis is diffuse)
     # Uses same overall_mask extent (LVOT to STJ) as calcific unwrap
     unwrap_fibrotic, _, _ = unwrap_to_cylindrical(
         (case_data['fibrotic_mask'] > 0).astype(np.float32),

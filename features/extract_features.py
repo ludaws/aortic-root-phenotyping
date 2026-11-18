@@ -3,7 +3,7 @@
 extract_features.py - Extract geometric CT phenotyping features from aortic root segmentations.
 
 Available masks per case (data/segmentations/<case_id>/):
-    overall_mask.nii.gz         - Full aortic root wall
+    overall_mask.nii.gz         - Aortic root plus LVOT
     root_mask.nii.gz            - Root region
     annular_mask.nii.gz         - Annular plane region
     lvot_mask.nii.gz            - LVOT region

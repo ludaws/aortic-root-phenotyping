@@ -15,8 +15,8 @@ post-hoc clinical testing. Approach follows Alexandrov et al. Nature 2013 and
 Brunet et al. PNAS 2004.
 
 Spatial resolution rationale:
-  Polar 10x60 (600 features): 10 radial bins (~2mm each from annulus to STJ),
-  60 angular bins (20 per cusp) provides sufficient resolution to distinguish
+  Polar 10x60 (600 features): 10 radial bins from the center of the annular plane to
+  1.3 times the annular radius and 60 angular bins provide sufficient resolution to distinguish
   inter-cusp and intra-cusp patterns without overfitting.
   Unwrap 10x60 (600 features): 10 longitudinal bins, 60 angular bins.
   Total 1800 features for ~1000 cases gives ~1.8:1 feature-to-case ratio.

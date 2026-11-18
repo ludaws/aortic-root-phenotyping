@@ -198,7 +198,7 @@ run_consensus <- function(H_emb, label, out_path, max_k, n_reps, sub, seed = 42L
 }
 
 # ---------------------------------------------------------------------------
-# Cophenetic correlation of consensus matrix (Brunet 2004 / TCGA Firehose).
+# Cophenetic correlation of consensus matrix (Brunet 2004).
 # ---------------------------------------------------------------------------
 cophenetic_of_consensus <- function(cm) {
   d_orig <- as.dist(1 - cm)
@@ -370,8 +370,8 @@ cc_res <- run_consensus(H_emb, version, file.path(vdir, "consensus"),
                         max_k, n_reps, subsample, seed = 42L)
 cc <- cc_res$cc; pac <- cc_res$pac
 
-# --- 4. k selection metrics (Brunet 2004 / TCGA Firehose) ---
-cat("\n--- k selection metrics (Brunet 2004 / TCGA Firehose convention) ---\n")
+# --- 4. k selection metrics (Brunet 2004) ---
+cat("\n--- k selection metrics (Brunet 2004) ---\n")
 coph_by_k <- rep(NA_real_, max_k - 1); names(coph_by_k) <- paste0("k", 2:max_k)
 sil_by_k  <- rep(NA_real_, max_k - 1); names(sil_by_k)  <- paste0("k", 2:max_k)
 for (k in 2:max_k) {
@@ -393,7 +393,7 @@ for (k in 2:max_k) {
 coph_diffs <- diff(coph_by_k)
 largest_drop_idx <- which.min(coph_diffs)
 k_brunet <- (2:max_k)[largest_drop_idx]
-cat(sprintf("\n  Largest cophenetic drop after k=%d (Brunet/TCGA convention)\n", k_brunet))
+cat(sprintf("\n  Largest cophenetic drop after k=%d\n", k_brunet))
 cat(sprintf("  Selected k = %d\n", target_k))
 
 # --- 5. Save assignments ---
@@ -478,7 +478,7 @@ for (ch in data$channels) {
 val_rows[[length(val_rows) + 1]] <- data.frame(
   metric = sprintf("cophenetic_consensus_k%d", target_k),
   value = as.numeric(coph_by_k[paste0("k", target_k)]),
-  reference = "Brunet 2004 / TCGA")
+  reference = "Brunet 2004")
 val_rows[[length(val_rows) + 1]] <- data.frame(
   metric = sprintf("silhouette_k%d", target_k),
   value = mean_sil_target, reference = "Rousseeuw 1987")
@@ -545,7 +545,7 @@ for (k in 2:max_k) {
               k, coph_by_k[kn], sil_by_k[kn], pac[kn]))
 }
 cat(sprintf("\n  Selected k = %d\n", target_k))
-cat(sprintf("    cophenetic of consensus matrix = %.4f  (Brunet 2004 / TCGA)\n",
+cat(sprintf("    cophenetic of consensus matrix = %.4f  (Brunet 2004)\n",
             coph_by_k[paste0("k", target_k)]))
 cat(sprintf("    mean silhouette width          = %.4f  (Rousseeuw 1987)\n",
             mean_sil_target))

@@ -488,7 +488,7 @@ def process_case(case_name: str, overwrite: bool = False, tissue_only: bool = Fa
 
     wall_only: regenerate wall_mask.nii.gz only (no DICOM loading, no tissue
                classification). Uses root_mask + metadata + cusp masks only.
-               Much faster than full processing — useful when changing EROSION_MM.
+               Much faster than full processing, for use when changing EROSION_MM.
     """
 
     seg_dir = SEGMENTATION_DIR / case_name
