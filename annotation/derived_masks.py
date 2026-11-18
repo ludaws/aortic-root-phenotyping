@@ -5,25 +5,26 @@ Derived Mask Generator.
 Generates secondary masks from the interactive annotator output and the
 raw DICOM volume:
 
-  wall_mask.nii.gz              - 1.5 mm outer shell of overall_mask
+  wall_mask.nii.gz              - 1.5 mm outer shell of root_mask
                                   (plane-aware EDT; annular and STJ faces
                                   excluded as erosion surfaces)
   valve_mask.nii.gz             - eroded interior intersected with cusp masks
   annular_mask.nii.gz           - 2 mm thick ring at the annular plane
-  blood_pool_mask.nii.gz        - blood pool sampled within overall_mask (QC)
+  blood_pool_mask.nii.gz        - blood pool sampled within root_mask (QC)
   calcific_mask.nii.gz          - blood-pool-calibrated calcific tissue
-                                  within overall_mask
+                                  within root_mask
   fibrotic_mask.nii.gz          - blood-pool-calibrated fibrotic tissue
-                                  within overall_mask
+                                  within root_mask
   calcific_mask_dilated.nii.gz  - calcific tissue within 2 mm-dilated
                                   overall_mask (captures wall-adherent calcium)
-  calcium_mask.nii.gz           - fixed HU > 850 within dilated overall_mask
+  calcium_mask.nii.gz           - fixed HU > 850 within root_mask
                                   (for nodule morphometry)
 
 Tissue classification uses scan-specific blood-pool calibration following
 Lembo et al. (JACC Cardiovasc Imaging 2024;17:1351) and Grodecki et al.
 (Radiology 2024;312:e240229):
-  - Blood pool sampled within overall_mask, clipped to 45-850 HU.
+  - 3-voxel median filter, then blood pool sampled within root_mask
+    (aortic root without LVOT), clipped to 45-850 HU.
   - Blood-pool mean and SD computed from the clipped distribution.
   - Fibrotic threshold = BP mean - 3*SD (down to 45 HU floor).
   - Calcific threshold = BP mean + 3*SD.

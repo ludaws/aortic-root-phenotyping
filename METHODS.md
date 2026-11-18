@@ -1,117 +1,88 @@
-# Methods–Code Mapping
+# Methods and Code
 
-This document maps each section of the manuscript Methods to the specific
-scripts and functions used to produce the published results.
+This file maps each section of the manuscript Methods to the scripts and
+settings that produced the published results. Constants are defined at the
+top of each script.
 
-## CT Image Assessment & Processing
+## CT processing and annotation
 
-Manuscript text:
-> First, a reference point was manually placed at the aortic valve on axial CT
-> images and a 140mm × 140mm region of interest was cropped. These were
-> processed using TotalSegmentator to generate automated segmentations of the
-> aorta and LV. A custom python script was used to manually review the CT
-> images and aorta/LV segmentations with multi-planar reconstruction, and the
-> following manual annotations were made: cusp nadir points, central
-> coaptation point and commissural points, and the STJ plane. The LVOT plane
-> was defined as 4mm below the aortic annulus.
+A reference point was placed at the aortic valve on axial CT, and a cubic
+region centered on that point was cropped and segmented with TotalSegmentator
+(`heartchambers_highres` task). The cropping and TotalSegmentator steps are
+run before this pipeline and are not included here.
 
-Implementation:
+`annotation/aortic_segmentator.py` is the interactive multiplanar annotation
+tool. For each case it records the cusp nadirs, commissural points, central
+coaptation point and STJ plane in `metadata.json`, and writes the overall,
+LVOT and per-cusp masks. The LVOT plane is placed 4 mm below the annular
+plane along its normal.
 
-- TotalSegmentator is an external dependency, run with `heartchambers_highres`.
-- `annotation/aortic_segmentator.py` provides the interactive MPR annotator and
-  writes per-case anatomical masks plus `metadata.json` containing the
-  annular, STJ, and LVOT plane definitions, cusp nadirs, commissural points,
-  and central coaptation point.
-- The LVOT plane is computed as 4 mm below the annular plane along its normal
-  (see `metadata.json["lvot_plane"]`).
+## Tissue classification
 
-## Fibrocalcific Tissue Feature Definitions
+`annotation/derived_masks.py`, function `classify_tissue_bp_calibrated`.
 
-Manuscript text:
-> Calcific and fibrotic tissue volumes were quantified using scan-specific
-> blood pool calibration previously validated against histology. The mean and
-> standard deviation (SD) of Hounsfield Unit (HU) values for the blood pool
-> within the aortic root mask were calculated (limited to an HU range of
-> 45–850), with calcific tissue defined as voxels exceeding three SDs above
-> the mean and fibrotic tissue as voxels between three SDs below the mean and
-> 45 HU.
+- The CT is smoothed with a 3-voxel median filter
+  (`BLOOD_POOL_MEDIAN_KERNEL = 3`).
+- Blood-pool HU values are sampled within the aortic root mask (root without
+  LVOT) and limited to 45 to 850 HU.
+- Calcific tissue is defined as voxels above the blood-pool mean + 3 SD.
+- Fibrotic tissue is defined as voxels between 45 HU
+  (`FIBROTIC_FLOOR_HU = 45`) and the blood-pool mean − 3 SD.
+- The wall mask is the outer 1.5 mm shell of the root mask
+  (`EROSION_MM = 1.5`).
+- For the wall projection, calcific tissue is also identified within the
+  overall mask (root plus LVOT) dilated by 2 mm
+  (`CALCIUM_PROXIMITY_MM = 2.0`), to include wall-adherent calcium.
 
-Implementation: `annotation/derived_masks.py`. Key constants:
+## Polar and cylindrical wall projections
 
-- `FIBROTIC_FLOOR_HU = 45` — lower HU bound for fibrotic tissue.
-- Calcific and fibrotic thresholds are derived per-case from the
-  blood-pool distribution within `overall_mask`, clipped to 45–850 HU
-  (see `classify_tissue` function).
+`features/tissue_features.py`.
 
-## Polar Bullseye and Cylindrical Unwrap Projections
+- Polar projection (`project_mask_to_polar`). Calcific and fibrotic voxels in
+  the root mask, with the 1.5 mm wall shell removed, are projected onto the
+  annular plane. Radius is measured from the center of the annular plane and
+  extends to 1.3 times the annular radius (`RADIAL_EXTENT = 1.3`). Each valve
+  is rotated so that the non-coronary cusp is at the top. The native grid is
+  20 radial × 120 angular bins.
+- Cylindrical wall projection (`unwrap_to_cylindrical`). Calcific voxels in
+  the 2 mm dilated overall mask are projected onto a grid that runs from the
+  LVOT plane to the STJ plane. The native grid is 60 longitudinal × 120
+  angular bins.
+- Tissue volumes are saved in mm³ and indexed to annular area in
+  `features/extract_features.py`.
 
-Manuscript text:
-> For the polar bullseye projection, calcific and fibrotic voxels within the
-> root mask (eroded by 1.5mm to exclude wall tissue) were projected onto the
-> annular plane. The projection was mapped to a 10×60 spatial grid... For the
-> cylindrical wall projection, the overall mask (root plus LVOT, dilated 2mm
-> to capture wall-adherent calcium) was projected onto a rectangular grid
-> bounded by the LVOT and STJ planes, and mapped to a 10×60 spatial grid.
+## Clustering
 
-Implementation: `features/tissue_features.py`.
+`clustering/prepare_clustering_matrices.py` downsamples each projection to a
+10 × 60 grid (600 bins) and L1-normalizes each patient's map so that it sums
+to 1. This gives three matrices (polar calcific, polar fibrotic and wall
+calcific).
 
-- Polar projection: `project_mask_to_polar`. Native grid is 20×120 (see
-  `N_RADIAL_BINS`, `N_ANGULAR_BINS`); downsampled to 10×60 for clustering in
-  `clustering/prepare_clustering_matrices.py`.
-- Unwrap projection: `unwrap_to_cylindrical`. Native grid 60×120;
-  downsampled to 10×60 for clustering.
-- Erosion uses `wall_mask`, defined as the 1.5 mm wall shell in
-  `derived_masks.py` (`EROSION_MM = 1.5`).
-- Calcific dilation uses `calcific_mask_dilated`, generated within a 2 mm
-  expansion of `overall_mask` (`CALCIUM_PROXIMITY_MM = 2.0`).
+`clustering/clustering.R`:
 
-## Geometric Feature Extraction
+- NMF is applied to each matrix separately (R `NMF` package, Brunet method,
+  rank 2 for each matrix).
+- The per-patient NMF weights are scaled to the range 0 to 1, weighted by the
+  variance explained within each matrix, and combined.
+- Consensus clustering uses `ConsensusClusterPlus` with Partition Around
+  Medoids, Pearson distance, 500 resamples and an item-resampling fraction of
+  0.85.
+- Mean silhouette width, cophenetic correlation and the proportion of
+  ambiguous clustering are reported for each k in `k_selection_table.csv`.
+  In the manuscript cohort, k=3 had the highest mean silhouette width across
+  k=2 to 5, and the script uses k=3 by default (`--target-k`).
+- Per-cluster stability is assessed by bootstrap Jaccard similarity over case
+  resampling.
 
-Manuscript text:
-> Geometric features describing the root, annulus, LVOT, and STJ were derived
-> from the annotated masks and used to assess correlations with tissue
-> parameters.
-
-Implementation: `features/extract_features.py`. Produces annular area, root
-volume, LVOT and STJ dimensions, plane tilts, and per-cusp rotation angles.
-
-## Cluster Phenotyping
-
-Manuscript text:
-> Each of three 600-bin matrices (polar calcific, polar fibrotic, and wall
-> calcific) were L1-normalized so that each patient's map summed to 1.
-> NMF was applied to each matrix independently for dimensionality reduction.
-> The resulting per-patient NMF weights were combined and used as input for
-> consensus clustering. Consensus clustering was performed using Partition
-> Around Medoids with Pearson distance for k=2 to 6 cluster groups.
-
-Implementation:
-
-- `clustering/prepare_clustering_matrices.py` builds the L1-normalised
-  10×60 = 600-feature matrices from the cached projections.
-- `clustering/clustering.R`:
-  - NMF per channel (R `NMF` package, Brunet method).
-  - Per-channel H matrices range-normalised, weighted by within-channel
-    explained variance, and concatenated to a per-case embedding.
-  - `ConsensusClusterPlus` with PAM clustering, Pearson distance,
-    500 resamples, item-resampling fraction 0.85, k = 2…6.
-  - Stability assessed by cophenetic correlation of the consensus matrix,
-    mean silhouette width, proportion of ambiguous clustering (PAC), and
-    per-cluster bootstrap Jaccard similarity (Hennig 2007).
+Bicuspid valves are excluded from clustering and analyzed separately.
 
 ## Outputs
 
-- `cluster_assignments_<version>_k3.csv` — final per-case cluster
-  assignments (1 = leaflet-fibrotic, 2 = leaflet-calcific reference,
-  3 = periannular-calcific).
-- `validation_metrics.csv` — cophenetic correlation, silhouette, PAC, ARI.
-- `jaccard_per_cluster.csv` — bootstrap stability per cluster.
+- `cluster_assignments_<version>_k3.csv` gives the cluster for each case
+  (1 = leaflet-fibrotic, 2 = leaflet-calcific, 3 = periannular-calcific).
+- `validation_metrics.csv` gives the silhouette width, cophenetic correlation
+  and proportion of ambiguous clustering.
+- `jaccard_per_cluster.csv` gives the bootstrap Jaccard similarity for each
+  cluster.
 
-## Reproducibility notes
-
-- Code uses fixed random seeds where possible (`consensus_seeds = 42, 123,
-  456`) and reports across multiple seeds.
-- Bicuspid cases are excluded from the tricuspid clustering and analysed
-  separately as described in the manuscript.
-- All thresholds (HU, erosion, dilation, grid resolution) are defined as
-  named constants at the top of each script.
+Random seeds are fixed in the clustering script.

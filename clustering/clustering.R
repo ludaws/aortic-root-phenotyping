@@ -5,28 +5,20 @@
 # Inputs: L1 pattern-normalised spatial channel matrices (cases x features).
 # Channels: polar_calcific, polar_fibrotic, unwrap_calcific.
 #
-# Pipeline (every step has a published precedent):
-#   1. Load channel matrices; restrict to tricuspid cases.
-#   2. NMF per channel (Brunet 2004, R NMF package). Rank pre-specified at
-#      r=2 across all channels by cophenetic stability and parsimony per
-#      Brunet 2004 / TCGA Firehose convention. All three channels achieve
-#      cophenetic correlation above the field-standard stability threshold
-#      (>0.88) at r=2; higher ranks yield only marginal cophenetic gains
-#      with low explained-variance components.
-#   3. Range-normalise each H column to [0, 1] and weight by within-channel
-#      explained variance; concatenate across channels into a per-case
-#      embedding.
-#   4. ConsensusClusterPlus: PAM clustering, Pearson distance, reps=500,
-#      pItem=0.85, maxK=6 (Monti 2003; Wilkerson 2010 ConsensusClusterPlus).
-#   5. k selection by joint cophenetic + silhouette per Brunet 2004 / TCGA
-#      Firehose convention. k=3 selected as the rank preceding the largest
-#      cophenetic drop, with adequate silhouette and PAC below 0.15
-#      stability threshold (Senbabaoglu 2014). Pre-specified clinical
-#      phenotyping rationale also supports k=3.
-#   6. Validation metrics: cophenetic correlation of consensus matrix by k
-#      (Brunet 2004 / TCGA), mean silhouette width by k (Rousseeuw 1987 /
-#      TCGA), PAC by k (Senbabaoglu 2014), ARI across consensus seeds
-#      (Monti 2003), per-cluster bootstrap Jaccard (Hennig 2007).
+# Pipeline:
+#   1. Load channel matrices and restrict to tricuspid cases.
+#   2. NMF per channel (R NMF package, Brunet method), rank 2 for each
+#      channel (override with --fixed-ranks).
+#   3. Scale each H column to [0, 1], weight by within-channel explained
+#      variance, and concatenate into a per-case embedding.
+#   4. ConsensusClusterPlus with PAM, Pearson distance, reps=500,
+#      pItem=0.85, maxK=6.
+#   5. Report cophenetic correlation, mean silhouette width and PAC for each
+#      k (k_selection_table.csv). k=3 is used by default (--target-k). In the
+#      manuscript cohort k=3 had the highest mean silhouette width across
+#      k=2 to 5.
+#   6. Per-cluster bootstrap Jaccard similarity and ARI across consensus
+#      seeds.
 #
 # Outputs (in results/phenotyping/):
 #   cluster_assignments_<version>.csv         primary (selected k, default 3)
